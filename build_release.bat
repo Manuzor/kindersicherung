@@ -1,0 +1,1 @@
+@zig build install -Drelease-small -Dstrip --prefix "%~dp0zig-cache\release"
