@@ -9,8 +9,8 @@ const HHOOK = HANDLE;
 // typedef LRESULT (CALLBACK *HOOKPROC) (int code, WPARAM wParam, LPARAM lParam)
 const HOOKPROC = fn (nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT;
 
-extern "user32" fn SetWindowsHookExW(idHook: c_int, lpfn: HOOKPROC, hmod: ?HMODULE, dwThreadId: DWORD) callconv(WINAPI) HHOOK;
-extern "user32" fn UnhookWindowsHookEx(hhk: HHOOK) callconv(WINAPI) BOOL;
+extern "user32" fn SetWindowsHookExW(idHook: c_int, lpfn: HOOKPROC, hmod: ?HMODULE, dwThreadId: DWORD) callconv(WINAPI) ?HHOOK;
+extern "user32" fn UnhookWindowsHookEx(hhk: ?HHOOK) callconv(WINAPI) BOOL;
 extern "user32" fn CallNextHookEx(hhk: HHOOK, nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT;
 
 const KBDLLHOOKSTRUCT = extern struct {
@@ -24,8 +24,14 @@ const KBDLLHOOKSTRUCT = extern struct {
 var global_hook: HHOOK = INVALID_HANDLE_VALUE;
 
 pub fn main() anyerror!void {
-    std.log.info("All your codebase are belong to us.", .{});
-    global_hook = SetWindowsHookExW(WH_KEYBOARD_LL, LowLevelKeyboardProc, kernel32.GetModuleHandleW(null), 0);
+    if (SetWindowsHookExW(WH_KEYBOARD_LL, LowLevelKeyboardProc, kernel32.GetModuleHandleW(null), 0)) |hook| {
+        global_hook = hook;
+    }
+    if (global_hook == INVALID_HANDLE_VALUE) {
+        std.log.emerg("failed to install hook.", .{});
+        return error.HookInstallFailed;
+    }
+    std.log.info("hook is installed.", .{});
     defer _ = UnhookWindowsHookEx(global_hook);
     _ = try user32.messageBoxW(null, W("Zum Beenden auf 'OK' drücken"), W("Kindersicherung"), user32.MB_OK | user32.MB_ICONINFORMATION);
 }
@@ -33,7 +39,7 @@ pub fn main() anyerror!void {
 export fn LowLevelKeyboardProc(nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT {
     if (nCode >= 0) {
         if (@intToPtr(?*KBDLLHOOKSTRUCT, @bitCast(usize, lParam))) |keyboard| {
-            std.log.info("KB: {}", .{keyboard.*});
+            std.log.debug("KB: {}", .{keyboard.*});
             var allow = switch (keyboard.vkCode) {
                 VK_BACK => true,
                 VK_SPACE => true,
@@ -53,7 +59,7 @@ export fn LowLevelKeyboardProc(nCode: c_int, wParam: WPARAM, lParam: LPARAM) cal
                 else => false,
             };
             if (!allow) {
-                std.log.info("INTERCEPT", .{});
+                std.log.notice("INTERCEPT", .{});
                 return 1;
             }
         }
