@@ -9,6 +9,7 @@ const HHOOK = HANDLE;
 // typedef LRESULT (CALLBACK *HOOKPROC) (int code, WPARAM wParam, LPARAM lParam)
 const HOOKPROC = fn (nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT;
 
+extern "kernel32" fn GetConsoleWindow() callconv(WINAPI) ?HWND;
 extern "user32" fn SetWindowsHookExW(idHook: c_int, lpfn: HOOKPROC, hmod: ?HMODULE, dwThreadId: DWORD) callconv(WINAPI) ?HHOOK;
 extern "user32" fn UnhookWindowsHookEx(hhk: ?HHOOK) callconv(WINAPI) BOOL;
 extern "user32" fn CallNextHookEx(hhk: HHOOK, nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT;
@@ -30,6 +31,9 @@ pub fn main() anyerror!void {
     if (global_hook == INVALID_HANDLE_VALUE) {
         std.log.emerg("failed to install hook.", .{});
         return error.HookInstallFailed;
+    }
+    if (GetConsoleWindow()) |console_window| {
+        _ = user32.ShowWindow(console_window, user32.SW_HIDE);
     }
     std.log.info("hook is installed.", .{});
     defer _ = UnhookWindowsHookEx(global_hook);
