@@ -41,7 +41,7 @@ pub fn main() anyerror!void {
         global_hook = hook;
     }
     if (global_hook == INVALID_HANDLE_VALUE) {
-        std.log.emerg("failed to install hook.", .{});
+        std.log.err("failed to install hook.", .{});
         return error.HookInstallFailed;
     }
     if (GetConsoleWindow()) |console_window| {
@@ -75,7 +75,7 @@ export fn LowLevelKeyboardProc(nCode: c_int, wParam: WPARAM, lParam: LPARAM) cal
                 else => false,
             };
             if (!allow) {
-                std.log.notice("INTERCEPT", .{});
+                std.log.info("INTERCEPT", .{});
                 return 1;
             }
         }
