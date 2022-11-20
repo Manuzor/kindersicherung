@@ -83,6 +83,12 @@ export fn LowLevelKeyboardProc(nCode: c_int, wParam: WPARAM, lParam: LPARAM) cal
             if (ctrl and keyboard.vkCode == vk.A) { // CTRL+A
                 allow = true;
             }
+            if (ctrl and keyboard.vkCode == vk.Z) { // CTRL+Z
+                allow = true;
+            }
+            if (ctrl and keyboard.vkCode == vk.Y) { // CTRL+Y
+                allow = true;
+            }
             if (!allow) {
                 std.log.info("INTERCEPT", .{});
                 return 1;
