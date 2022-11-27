@@ -1,3 +1,6 @@
+// TODO
+//   * Allow äöüß
+//
 const std = @import("std");
 const win = std.os.windows;
 const W = std.unicode.utf8ToUtf16LeStringLiteral;

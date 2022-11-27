@@ -14,6 +14,7 @@ pub fn build(b: *std.build.Builder) void {
     const exe = b.addExecutable("kindersicherung", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
+    exe.subsystem = if(mode == .Debug) .Console else .Windows;
     exe.strip = b.option(bool, "strip", "strip debug symbols / omit pdbs") orelse false;
     exe.install();
 
