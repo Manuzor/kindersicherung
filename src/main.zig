@@ -24,6 +24,8 @@ const HHOOK = HANDLE;
 // typedef LRESULT (CALLBACK *HOOKPROC) (int code, WPARAM wParam, LPARAM lParam)
 const HOOKPROC = fn (nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT;
 
+var call_index: i64 = 0;
+
 extern "kernel32" fn GetConsoleWindow() callconv(WINAPI) ?HWND;
 extern "user32" fn SetWindowsHookExW(idHook: c_int, lpfn: *const HOOKPROC, hmod: ?HMODULE, dwThreadId: DWORD) callconv(WINAPI) ?HHOOK;
 extern "user32" fn UnhookWindowsHookEx(hhk: ?HHOOK) callconv(WINAPI) BOOL;
@@ -57,16 +59,18 @@ pub fn main() anyerror!void {
 }
 
 export fn LowLevelKeyboardProc(nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT {
+    defer call_index += 1;
     if (nCode >= 0) {
         if (@intToPtr(?*KBDLLHOOKSTRUCT, @bitCast(usize, lParam))) |keyboard| {
             // std.log.debug("KB: {}", .{keyboard.*});
-            const ctrl = (GetKeyState(vk.CONTROL) & 0b1000000_000000) != 0;
+            const ctrl_state = @bitCast(u16, GetKeyState(vk.CONTROL));
+            const ctrl = (ctrl_state & 0b10000000_00000000) != 0;
             var allow = switch (keyboard.vkCode) {
                 vk.BACK => true,
                 vk.SPACE => true,
                 vk.LEFT, vk.UP, vk.RIGHT, vk.DOWN => true,
                 vk.HOME, vk.END, vk.PRIOR, vk.NEXT => true,
-                vk.@"0"...vk.@"9" => true, // 0-9
+                vk.@"0"...vk.@"9" => !ctrl, // 0-9
                 vk.A...vk.Z => !ctrl, // A-Z
                 vk.NUMPAD0...vk.NUMPAD9 => true, // Numpad 0-9
                 vk.ADD => true,
@@ -93,7 +97,7 @@ export fn LowLevelKeyboardProc(nCode: c_int, wParam: WPARAM, lParam: LPARAM) cal
                 allow = true;
             }
             if (!allow) {
-                std.log.info("INTERCEPT", .{});
+                std.log.info("[{} 0b{b:0<16}] INTERCEPT vk code 0x{x}", .{ call_index, ctrl_state, keyboard.vkCode });
                 return 1;
             }
         }
