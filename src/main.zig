@@ -61,9 +61,9 @@ pub fn main() anyerror!void {
 export fn LowLevelKeyboardProc(nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT {
     defer call_index += 1;
     if (nCode >= 0) {
-        if (@intToPtr(?*KBDLLHOOKSTRUCT, @bitCast(usize, lParam))) |keyboard| {
+        if (@as(?*KBDLLHOOKSTRUCT, @ptrFromInt(@as(usize, @bitCast(lParam))))) |keyboard| {
             // std.log.debug("KB: {}", .{keyboard.*});
-            const ctrl_state = @bitCast(u16, GetKeyState(vk.CONTROL));
+            const ctrl_state = @as(u16, @bitCast(GetKeyState(vk.CONTROL)));
             const ctrl = (ctrl_state & 0b10000000_00000000) != 0;
             var allow = switch (keyboard.vkCode) {
                 vk.BACK => true,
