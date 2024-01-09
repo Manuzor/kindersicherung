@@ -2,11 +2,21 @@
 //   * Allow äöüß
 //
 const std = @import("std");
-const win = std.os.windows;
+
+const win = struct {
+    usingnamespace std.os.windows;
+    pub const user32 = struct {
+        const SW_HIDE = 0;
+        const MB_OK = 0x00;
+        const MB_ICONINFORMATION = 0x00000040;
+    };
+};
+
 const W = std.unicode.utf8ToUtf16LeStringLiteral;
 const vk = @import("vk_codes.zig");
 
 const DWORD = win.DWORD;
+const UINT = win.UINT;
 const ULONG_PTR = win.ULONG_PTR;
 const HWND = win.HWND;
 const WINAPI = win.WINAPI;
@@ -31,6 +41,8 @@ extern "user32" fn SetWindowsHookExW(idHook: c_int, lpfn: *const HOOKPROC, hmod:
 extern "user32" fn UnhookWindowsHookEx(hhk: ?HHOOK) callconv(WINAPI) BOOL;
 extern "user32" fn CallNextHookEx(hhk: HHOOK, nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT;
 extern "user32" fn GetKeyState(nVirtKey: c_int) callconv(WINAPI) win.SHORT;
+extern "user32" fn ShowWindow(hWnd: ?HWND, nCmdShow: c_int) callconv(WINAPI) c_int;
+extern "user32" fn MessageBoxW(hWnd: ?HWND, lpText: [*:0]const u16, lpCaption: [*:0]const u16, uType: UINT) callconv(WINAPI) c_int;
 
 const KBDLLHOOKSTRUCT = extern struct {
     vkCode: DWORD,
@@ -51,11 +63,11 @@ pub fn main() anyerror!void {
         return error.HookInstallFailed;
     }
     if (GetConsoleWindow()) |console_window| {
-        _ = win.user32.ShowWindow(console_window, win.user32.SW_HIDE);
+        _ = ShowWindow(console_window, win.user32.SW_HIDE);
     }
     std.log.info("hook is installed.", .{});
     defer _ = UnhookWindowsHookEx(global_hook);
-    _ = win.user32.MessageBoxW(null, W("Zum Beenden auf 'OK' drücken"), W("Kindersicherung"), win.user32.MB_OK | win.user32.MB_ICONINFORMATION);
+    _ = MessageBoxW(null, W("Zum Beenden auf 'OK' drücken"), W("Kindersicherung"), win.user32.MB_OK | win.user32.MB_ICONINFORMATION);
 }
 
 export fn LowLevelKeyboardProc(nCode: c_int, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT {
